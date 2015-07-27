@@ -1,0 +1,6 @@
+pixifier:
+   build: .
+   command: npm run init
+   volumes:
+      - app:/pixifier/app
+      - /pixifier/data:/pixifier/data

@@ -3,6 +3,6 @@
 	"urlAPI":"http://_MY_WEBSITE/_MY_API_",
 	"urlPics":"http://_MY_WEBSITE/_MY_PICS_DIR",
 	"classes":
-	[{"name":"velo","category":"bicyclettes", "keywords":["velo", "vtt", "byciclette"]},
+	[{"name":"velo","category":"bicyclettes", "keywords":["velo", "vtt", "bicyclette"]},
 	{"name":"electromenager","category":"electromenager", "keywords":["frigo"]}]
 }

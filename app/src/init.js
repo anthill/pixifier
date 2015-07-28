@@ -45,7 +45,7 @@ fs.readFile(file, 'utf8', function (err, data) {
         names.push(line.name);
         categories.push(line.category);
         keywords.push(line.keywords);
-        fs.mkdir('./data/'+line.name,function(e){
+        fs.mkdir('/pixifier/app/data/'+line.name,function(e){
             if(!e || (e && e.code === 'EEXIST')){
                 //do something with contents
             } else {
@@ -81,7 +81,7 @@ fs.readFile(file, 'utf8', function (err, data) {
                             object.pics.split(';').forEach(function(pic){
                                 if(pic !== ''){
                                     var path = data.urlPics +'/'+pic;
-                                    var localPath = './data/'+names[index]+'/'+pic;
+                                    var localPath = '/pixifier/app/data/'+names[index]+'/'+pic;
                                     request({
                                         url: path,
                                         strictSSL: false

@@ -3,17 +3,11 @@
   "version": "0.1.0",
   "description": "Classifying pics",
   "main": "server.js",
-  "scripts": {
-    "init": "gulp init --gulpfile app/gulpfile.js"
-  },
   "dependencies": {
     "body-parser": "^1.13.2",
+    "convnetjs": "^0.3.0",
     "es6-shim": "^0.31.2",
     "request": "^2.60.0"
-  },
-  "devDependencies": {
-    "gulp": "~3.8.8",
-    "gulp-live-server": "^0.0.23"
   },
   "private": true
 }

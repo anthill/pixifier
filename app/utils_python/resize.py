@@ -11,7 +11,7 @@ def main():
 	json_parameters = open(data_folder+'/../param-ini.json')
     
 	for line in json.load(json_parameters)['classes']:
-		print '>', line['name']
+		print '> Resize', line['name']
 		for dirPath, dirName, fileNames in os.walk(data_folder+'/'+line['name']):
 			for fileName in fileNames:
 				img = Image.open(os.path.join(dirPath,fileName));

@@ -52,8 +52,8 @@ var saveImage = function(pics, index) {
 
 var resizeImages = function(){
 
-    console.log("Resizing pictures");
-
+    console.log("[Resize]");
+    console.time("[Resize]");
     var proc = spawn('python', ['-u', '/pixifier/app/utils_python/resize.py']);
     proc.stdout.on('data', function(buffer){
         console.log(String(buffer).replace('\n',''));
@@ -62,23 +62,30 @@ var resizeImages = function(){
         console.log("Error on resizing :", String(buffer).replace('\n',''));
     });
     proc.on('close', function(code) { 
-        console.log("End of resizing");
+        console.timeEnd("[Resize]");
     });
 }
 
 //resizeImages();
 
 var loadImages = function(){
+
+    // Read json parameters
+    console.log("[Build] folders with",file);
+    console.time("[Build]");
     var data;
     fs.readFile(file, 'utf8', function (err, data) {
+        
         if ( err != null ){ 
-            console.log('Error Data: ' + err);
+            console.log('Error Ini parameters: ' + err);
             return;
         }
 
+        // Parse then build 1 folder by class
         data = JSON.parse(data);
         data.classes.forEach(function(line){
-            console.log("> Building ", line.name);
+            
+            console.log("> Build", line.name);
             fs.mkdir('/pixifier/app/data/'+line.name,function(e){
                 if(!e || (e && e.code === 'EEXIST')){
                     //do something with contents
@@ -88,22 +95,28 @@ var loadImages = function(){
                 }
             });
         })
+        console.timeEnd("[Build]");
+    
         
-        console.log("Calling", data.urlAPI);
+        // Call API
+        console.log("[Call]", data.urlAPI);
+        
+        console.time("[Call]");
         request({
             url: data.urlAPI,
             strictSSL: false
         }, function (err, response, body) {
             
             if(err){
-                console.error('Calling API error', err);
+                console.error('Call API error', err);
                 return;
             }
             if(response.statusCode>=400) {
-                console.log("bad status reponse", response.statusCode);
+                console.log("Bad status reponse", response.statusCode);
                 return;
             }
-
+           
+            // Parse all the objects
             var objects = JSON.parse(body);
             var list = [];
             var index = {value: 0}; // not picIndex = 0 in order to be able to change the value inside of a function
@@ -112,7 +125,7 @@ var loadImages = function(){
 
             data.classes.map(function(line){
 
-                console.log("> Crawling ", line.name);
+                console.log("> Call", line.name);
                 
                 objects
                 .filter(function(object){
@@ -137,8 +150,11 @@ var loadImages = function(){
                     });
                 });
             });
+            console.timeEnd("[Call]");
 
-            console.log("Pics to download : " + list.length)
+
+            console.log("[Download] : " + list.length + ' pics');
+            console.time("[Download]");
 
             // when one picture is saved, start another one
             eventEmitter.on("new", function(pics, index) {
@@ -148,8 +164,10 @@ var loadImages = function(){
 
             eventEmitter.on("download", function() {
                 ++cpt.value;
-                if(cpt.value === list.length)
+                if(cpt.value === list.length){
+                    console.timeEnd("[Download]");
                     resizeImages();
+                }
             });
 
             // send the first pics to save

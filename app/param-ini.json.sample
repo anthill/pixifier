@@ -2,7 +2,8 @@
 {
 	"urlAPI":"http://_MY_WEBSITE/_MY_API_",
 	"urlPics":"http://_MY_WEBSITE/_MY_PICS_DIR",
-	"classes":
-	[{"name":"velo","categories":["bicyclettes"], "keywords":["velo", "vtt", "bicyclette"]},
-	{"name":"lit","categories":["mobilier","literie"], "keywords":["lit"]}]
+	"maxPics":100,
+   	"classes":
+	[{"active":true,"name":"velo","categories":["bicyclettes"], "keywords":["velo", "vtt", "bicyclette"]},
+	{"active":true,"name":"lit","categories":["mobilier","literie"], "keywords":["lit"]}]
 }

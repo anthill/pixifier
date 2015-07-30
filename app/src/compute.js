@@ -4,6 +4,7 @@ require('es6-shim');
 var convnetjs = require('convnetjs');
 var fs = require("fs");
 var file  = "/pixifier/app/param-ini.json";
+var getPixels = require("get-pixels");
 
 var sample_training_instance = function() {
   // find an unloaded batch
@@ -56,6 +57,8 @@ var sample_training_instance = function() {
 
 var compute = function(){
 
+  var nbPixels = 64;
+  var nbChannels = 4;
   var path = '/pixifier/app/data/';
   var data;
   fs.readFile(file, 'utf8', function (err, data) {
@@ -67,39 +70,15 @@ var compute = function(){
     
     var classes_txt = [];      
     data = JSON.parse(data);
-    data.classes.map(function(line, index){
-      classes_txt.push(line.name);
+    data.classes.forEach(function(line){
+      if(line.active === true)
+        classes_txt.push(line.name);
     });
 
-    classes_txt.forEach(function(className){
-
-      console.log(">", className);
-      var files = fs.readdirSync(path+className);
-      
-      var content;
-      fs.readFile(path+className+'/'+files[0], function (err, content) {
-        if (err) console.log(err);
-        console.log(content);
-      });
-
-
-    });
-
-    
-    /*
-    var dataset_name = "yo";
-    var num_batches = 51; // 20 training batches, 1 test
-    var test_batch = 50;
-    var num_samples_per_batch = 1000;
-    var image_dimension = 32;
-    var image_channels = 3;
-    var use_validation_data = true;
-    var random_flip = true;
-    var random_position = true;
 
     var layer_defs, net, trainer;
     layer_defs = [];
-    layer_defs.push({type:'input', out_sx:32, out_sy:32, out_depth:3});
+    layer_defs.push({type:'input', out_sx:nbPixels, out_sy:nbPixels, out_depth:1});
     layer_defs.push({type:'conv', sx:5, filters:16, stride:1, pad:2, activation:'relu'});
     layer_defs.push({type:'pool', sx:2, stride:2});
     layer_defs.push({type:'conv', sx:5, filters:20, stride:1, pad:2, activation:'relu'});
@@ -113,32 +92,105 @@ var compute = function(){
     
     trainer = new convnetjs.SGDTrainer(net, {method:'adadelta', batch_size:1, l2_decay:0.0001});
 
-    var lossWindow = new Window();
-    for(var iter=0; iter<10; iter++) {
+    var nbTrain = 100;
+    var nbValidate = 50;
 
+    console.log("*** Training ***");
 
-    }
-    var data_img_elts = new Array(num_batches);
-    var img_data = new Array(num_batches);
-    var loaded = new Array(num_batches);
-    var loaded_train_batches = [];
+    var listTrain = [];
+    var listValidate = [];
 
-    for(var k=0;k<loaded.length;k++) { loaded[k] = false; }
+    classes_txt.forEach(function(className, index){
 
-    load_data_batch(0); // async load train set batch 0
-    load_data_batch(test_batch); // async load test set
-    start_fun();
+      var files = fs.readdirSync(path+className);
+      files.forEach(function(file, id){
 
-    // Training code here !
-
-    console.log("Saving model");
-    var result = net.toJSON();
-    var modelPath = "/pixifier/app/data/results.json";
-    fs.writeFile(modelPath, JSON.stringify(result), function(err) {
-      if (err) console.log(err);
-      console.log("Model saved in ", modelPath);
+        var object = {
+          path: path+className+'/'+file,
+          file: file,
+          classId: index,
+          className: className,
+          id: id
+        }
+        if(id < nbTrain) listTrain.push(object);
+        else listValidate.push(object);
+      });
     });
-    */
+
+    listTrain.sort(function(o1,o2){
+      return (o1.id-o2.id);
+    });
+    listValidate.sort(function(o1,o2){
+      return (o2.id-o1.id);
+    });
+    
+    Promise.all(listTrain
+      .map(function(object, index){
+
+      return new Promise(function(resolve, reject){
+
+        var x = new convnetjs.Vol(nbPixels,nbPixels,nbChannels,0.0);
+        getPixels(object.path, function(err, pixels) {
+          if(err) {
+            console.log("Bad image path");
+            reject();
+            return
+          }
+          
+          for(var i=0; i<nbPixels; ++i)
+            for(var j=0; j<nbPixels; ++j)
+              for(var k=0; k<nbChannels; ++k)
+                x.set(i,j,k,pixels.get(i,j,k)/255.0-0.5);
+
+
+          var output = trainer.train(x, object.classId);
+          
+          var pred = net.getPrediction();
+          var acc = pred==object.classId ? 1.0 : 0.0;
+          //testAccWindow.add(acc);
+          console.log(pred==object.classId?"T ok":"T ko",pred, object.className, index, object.file);
+          
+          resolve();
+        });
+      });
+    }))
+    .then(function(){
+      console.log("*** Validation ***");
+      
+      Promise.all(listValidate
+      .map(function(object, index){
+
+        return new Promise(function(resolve, reject){
+
+          var x = new convnetjs.Vol(nbPixels,nbPixels,nbChannels,0.0);
+          getPixels(object.path, function(err, pixels) {
+            if(err) {
+              console.log("Bad image path");
+              reject();
+              return
+            }
+            
+            for(var i=0; i<nbPixels; ++i)
+              for(var j=0; j<nbPixels; ++j)
+                for(var k=0; k<nbChannels; ++k)
+                  x.set(i,j,k,pixels.get(i,j,k)/255.0-0.5);
+
+
+
+            var output = net.forward(x);
+
+            var pred = net.getPrediction();
+            var acc = pred==object.classId ? 1.0 : 0.0;
+            //testAccWindow.add(acc);
+            console.log(pred==object.classId?"V ok":"V ko",pred, object.className, index, object.file);
+            resolve();
+          });                              
+        });
+      }))
+      .then(function(){
+        console.log("yo");
+      });
+    });
   });
 }
 

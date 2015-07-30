@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     python-pip \
     sudo \
     python-dev libjpeg-dev libfreetype6-dev zlib1g-dev
+   
 RUN apt-get -y install sudo
 
 RUN mkdir /pixifier

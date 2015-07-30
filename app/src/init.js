@@ -74,7 +74,9 @@ var loadPics = function(){
 
         // Parse then build 1 folder by class
         data = JSON.parse(data);
-        data.classes.forEach(function(line){
+        data.classes
+            .filter(function(line){return (line.active===true);})
+            .forEach(function(line){
             
             console.log("> Build", line.name);
             fs.mkdir('/pixifier/app/data/'+line.name,function(e){
@@ -110,9 +112,12 @@ var loadPics = function(){
             var objects = JSON.parse(body);
             var list = [];
             
-            data.classes.forEach(function(line){
+            data.classes
+                .filter(function(line){return (line.active===true);})
+                .forEach(function(line){
 
                 console.log("> Call", line.name);
+                var cpt = 0;
                 
                 objects
                 .filter(function(object){
@@ -129,11 +134,12 @@ var loadPics = function(){
                         return (text !== '');
                     })
                     .forEach(function(pic){
-
-                        list.push({
-                            url:        data.urlPics +'/'+pic,
-                            localPath:  '/pixifier/app/data/'+line.name+'/'+pic//stock object to download
-                        });
+                        if(cpt++ < data.maxPics){
+                            list.push({
+                                url:        data.urlPics +'/'+pic,
+                                localPath:  '/pixifier/app/data/'+line.name+'/'+pic//stock object to download
+                            });
+                        }
                     });
                 });
             });

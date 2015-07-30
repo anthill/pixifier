@@ -2,9 +2,9 @@
 
 require('es6-shim');
 require('/pixifier/app/param-ini.json');
+var spawn = require('child_process').spawn;
 
 var fs = require("fs");
-
 var file  = "/pixifier/app/param-ini.json";
 var request = require('request');
 
@@ -29,69 +29,141 @@ String.prototype.strFormat = function(){
     return str;
 }
 
-var data;
-fs.readFile(file, 'utf8', function (err, data) {
-    if ( err != null ){ 
-        console.log('Error Data: ' + err);
-        return;
-    }
+var saveRange = function(pics, index, range) {
 
-    var names = [];
-    var categories = [];
-    var keywords = [];
-    data = JSON.parse(data);
-    data.classes.map(function(line, index){
-        console.log(">", line.category);
-        names.push(line.name);
-        categories.push(line.category);
-        keywords.push(line.keywords);
-        fs.mkdir('/pixifier/app/data/'+line.name,function(e){
-            if(!e || (e && e.code === 'EEXIST')){
-                //do something with contents
-            } else {
-                //debug
-                console.log(e);
-            }
+    var iMin = index * range;
+    var iMax = Math.min((index+1)*range-1, pics.length-1);
+
+    console.log(iMin,"...", iMax);
+
+    return Promise.all(pics
+        .slice(iMin, iMax) 
+        .map(function(pic){
+
+        return new Promise(function(subResolve, subReject){
+
+            var wStream = fs.createWriteStream(pic.localPath);
+            wStream.on("finish", function() {
+                subResolve();
+            });
+            request({
+                url: pic.url,
+                strictSSL: false
+            }).pipe(wStream);
         });
-    })
-    
-    console.log("Calling", data.urlAPI);
-    request({
-        url: data.urlAPI,
-        strictSSL: false
-    }, function (err, response, body) {
-        if(err){
-            console.error('Calling API error', err);
+        
+    }))
+    .then(function(){
+        if (iMax === pics.length-1) return true;
+        else return saveRange(pics, ++index, range);
+    });
+}
+
+var loadPics = function(){
+
+    // Read json parameters
+    console.log("[Build] folders with",file);
+    console.time("[Build]");
+    var data;
+    fs.readFile(file, 'utf8', function (err, data) {
+        
+        if ( err != null ){ 
+            console.log('Error Ini parameters: ' + err);
+            return;
         }
-        else if(response.statusCode>=400) {
-            console.log("bad status reponse", response.statusCode);
-        }
-        else
-        {
-            var objects = JSON.parse(body);
-            objects.forEach(function(object){
-                var index = categories.indexOf(object.category);
-                if(index !== -1){
-                    var keyword = keywords[index];
-                    keyword.forEach(function(kword) {
-                        var match = object.title.strFormat().search(new RegExp(kword, "i")) !== -1;
-                        if( match 
-                            && object.pics !== null
-                            && object.pics !== '-'){
-                            object.pics.split(';').forEach(function(pic){
-                                if(pic !== ''){
-                                    var path = data.urlPics +'/'+pic;
-                                    var localPath = '/pixifier/app/data/'+names[index]+'/'+pic;
-                                    request({
-                                        url: path,
-                                        strictSSL: false
-                                    }).pipe(fs.createWriteStream(localPath));
-                                }
-                            });
-                        }
-                    });
+
+        // Parse then build 1 folder by class
+        data = JSON.parse(data);
+        data.classes.forEach(function(line){
+            
+            console.log("> Build", line.name);
+            fs.mkdir('/pixifier/app/data/'+line.name,function(e){
+                if(!e || (e && e.code === 'EEXIST')){
+                    //do something with contents
+                } else {
+                    //debug
+                    console.log(e);
                 }
             });
-        }
+        })
+        console.timeEnd("[Build]");
+        
+        // Call API
+        console.log("[Call]", data.urlAPI);
+        
+        console.time("[Call]");
+        request({
+            url: data.urlAPI,
+            strictSSL: false
+        }, function (err, response, body) {
+            
+            if(err){
+                console.error('Call API error', err);
+                return;
+            }
+            if(response.statusCode>=400) {
+                console.log("Bad status reponse", response.statusCode);
+                return;
+            }
+           
+            // Parse all the objects
+            var objects = JSON.parse(body);
+            var list = [];
+            
+            data.classes.forEach(function(line){
+
+                console.log("> Call", line.name);
+                
+                objects
+                .filter(function(object){
+                    
+                    if(line.categories.indexOf(object.category) === -1) return false;
+                    return line.keywords.some(function(keyword){
+                        return (object.title.strFormat().search(new RegExp(keyword, "i")) !== -1);
+                    });
+                })
+                .forEach(function(object){
+                    
+                    object.pics.split(';')
+                    .filter(function(text){
+                        return (text !== '');
+                    })
+                    .forEach(function(pic){
+
+                        list.push({
+                            url:        data.urlPics +'/'+pic,
+                            localPath:  '/pixifier/app/data/'+line.name+'/'+pic//stock object to download
+                        });
+                    });
+                });
+            });
+            console.timeEnd("[Call]");
+
+
+            console.log("[Download] : " + list.length + ' pics');
+            console.time("[Download]");
+
+            saveRange(list,0,1000)
+            .then(function(result){
+                
+                console.timeEnd("[Download]");
+            
+                console.log("[Resize]");
+                console.time("[Resize]");
+
+                var proc = spawn('python', ['-u', '/pixifier/app/utils_python/resize.py']);
+                proc.stdout.on('data', function(buffer){
+                    console.log(String(buffer).replace('\n',''));
+                });
+                proc.stderr.on('data', function(buffer) { 
+                    console.log("Error on resizing :", String(buffer).replace('\n',''));
+                });
+                proc.on('close', function(code) { 
+                    console.timeEnd("[Resize]");
+                });
+            });
+        });
     });
-});
+}
+
+loadPics();

@@ -7,9 +7,6 @@ var spawn = require('child_process').spawn;
 var fs = require("fs");
 var file  = "/pixifier/app/param-ini.json";
 var request = require('request');
-var EventEmitter = require('events').EventEmitter;
-var eventEmitter = new EventEmitter();
-var image_dimension = 64;
 
 String.prototype.strFormat = function(){
     
@@ -32,43 +29,37 @@ String.prototype.strFormat = function(){
     return str;
 }
 
-var saveImage = function(pics, index) {
-    
-    var thisIndex = index.value;
-    var wStream = fs.createWriteStream(pics[thisIndex].localPath);
+var saveRange = function(pics, index, range) {
 
-    wStream.on("finish", function() {
-        wStream.end();
-        if (index.value < pics.length)
-            eventEmitter.emit("new", pics, index);
-        eventEmitter.emit("download");    
-    });
+    var iMin = index * range;
+    var iMax = Math.min((index+1)*range-1, pics.length-1);
 
-    request({
-        url: pics[thisIndex].url,
-        strictSSL: false
-    }).pipe(wStream);
-}
+    console.log(iMin,"...", iMax);
 
-var resizeImages = function(){
+    return Promise.all(pics
+        .slice(iMin, iMax) 
+        .map(function(pic){
 
-    console.log("[Resize]");
-    console.time("[Resize]");
-    var proc = spawn('python', ['-u', '/pixifier/app/utils_python/resize.py']);
-    proc.stdout.on('data', function(buffer){
-        console.log(String(buffer).replace('\n',''));
-    });
-    proc.stderr.on('data', function(buffer) { 
-        console.log("Error on resizing :", String(buffer).replace('\n',''));
-    });
-    proc.on('close', function(code) { 
-        console.timeEnd("[Resize]");
+        return new Promise(function(subResolve, subReject){
+
+            var wStream = fs.createWriteStream(pic.localPath);
+            wStream.on("finish", function() {
+                subResolve();
+            });
+            request({
+                url: pic.url,
+                strictSSL: false
+            }).pipe(wStream);
+        });
+        
+    }))
+    .then(function(){
+        if (iMax === pics.length-1) return true;
+        else return saveRange(pics, ++index, range);
     });
 }
 
-//resizeImages();
-
-var loadImages = function(){
+var loadPics = function(){
 
     // Read json parameters
     console.log("[Build] folders with",file);
@@ -96,7 +87,6 @@ var loadImages = function(){
             });
         })
         console.timeEnd("[Build]");
-    
         
         // Call API
         console.log("[Call]", data.urlAPI);
@@ -119,11 +109,8 @@ var loadImages = function(){
             // Parse all the objects
             var objects = JSON.parse(body);
             var list = [];
-            var index = {value: 0}; // not picIndex = 0 in order to be able to change the value inside of a function
-            var cpt = {value: 0};
-            var maxNbFiles = 1000;
-
-            data.classes.map(function(line){
+            
+            data.classes.forEach(function(line){
 
                 console.log("> Call", line.name);
                 
@@ -135,7 +122,7 @@ var loadImages = function(){
                         return (object.title.strFormat().search(new RegExp(keyword, "i")) !== -1);
                     });
                 })
-                .map(function(object){
+                .forEach(function(object){
                     
                     object.pics.split(';')
                     .filter(function(text){
@@ -156,27 +143,27 @@ var loadImages = function(){
             console.log("[Download] : " + list.length + ' pics');
             console.time("[Download]");
 
-            // when one picture is saved, start another one
-            eventEmitter.on("new", function(pics, index) {
-                saveImage(pics, index);
-                ++index.value;
+            saveRange(list,0,1000)
+            .then(function(result){
+                
+                console.timeEnd("[Download]");
+            
+                console.log("[Resize]");
+                console.time("[Resize]");
+
+                var proc = spawn('python', ['-u', '/pixifier/app/utils_python/resize.py']);
+                proc.stdout.on('data', function(buffer){
+                    console.log(String(buffer).replace('\n',''));
+                });
+                proc.stderr.on('data', function(buffer) { 
+                    console.log("Error on resizing :", String(buffer).replace('\n',''));
+                });
+                proc.on('close', function(code) { 
+                    console.timeEnd("[Resize]");
+                });
             });
-
-            eventEmitter.on("download", function() {
-                ++cpt.value;
-                if(cpt.value === list.length){
-                    console.timeEnd("[Download]");
-                    resizeImages();
-                }
-            });
-
-            // send the first pics to save
-            for (var img = 0; img <= maxNbFiles; ++img) {
-                eventEmitter.emit("new", list, index);
-            }
-
         });
     });
 }
 
-loadImages();
+loadPics();

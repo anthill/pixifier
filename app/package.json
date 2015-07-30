@@ -2,7 +2,7 @@
   "name": "pixifier",
   "version": "0.1.0",
   "description": "Classifying pics",
-  "main": "server.js",
+  "main": "compute.js",
   "dependencies": {
     "body-parser": "^1.13.2",
     "convnetjs": "^0.3.0",

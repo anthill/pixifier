@@ -2,7 +2,6 @@
 
 require('es6-shim');
 var convnetjs = require('convnetjs');
-var lwip = require('lwip');
 var fs = require("fs");
 var file  = "/pixifier/app/param-ini.json";
 

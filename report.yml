@@ -1,0 +1,11 @@
+pixifier:
+   build: .
+   ports:
+   - "33000:33000"
+   command: node /pixifier/app/src/report.js
+   environment:
+      - VIRTUAL_PORT=33000
+   volumes:
+   - app:/pixifier/app
+   - /pixifier/data:/pixifier/data
+   restart: always

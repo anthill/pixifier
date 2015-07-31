@@ -41,10 +41,23 @@ var MainView = React.createClass({
     //List
     var contentJSX = this.state.data.map(function(object){
       if(object.className === labels[that.state.index]){
+        
+        var probs = [];
+        var max = 0;
+        for(var i=0; i<labels.length; ++i){
+          var prob = Math.floor(parseFloat(object.output.w[i.toString()])*100);
+          if(prob > max) max = prob;
+          probs.push(prob);
+        }
+
         var statsJSX = [];
         for(var i=0; i<labels.length; ++i){
-          statsJSX.push(<li>{labels[i]+": "+(Math.floor(parseFloat(object.output.w[i.toString()])*100)).toString()+"%"}</li>);
+          if(probs[i] === max)
+            statsJSX.push(<li><strong>{labels[i]+": "+probs[i].toString()+"%"}</strong></li>);
+          else 
+            statsJSX.push(<li>{labels[i]+": "+probs[i].toString()+"%"}</li>);
         }
+
         return (
           <div className="col-xs-3 col-lg-6">
             <div className="thumbnail center-block">

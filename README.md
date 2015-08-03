@@ -52,7 +52,7 @@ It's composed of three docker containers :
 
 	* name : String : name of the object (ex : bicycle)
 
-	* categories : Array : categories it will search for this item in the API (ex: sport)
+	* categories : Array : categories where it will search for this item in the API (ex: sport)
 
 	* keywords : Array : keywords related to this item in the API (ex: "bicycle", "mountain bike", "bike")
 

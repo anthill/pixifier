@@ -98,7 +98,7 @@ var compute = function(){
           var pred = net.getPrediction();
           var acc = pred==object.classId ? 1.0 : 0.0;
           //testAccWindow.add(acc);
-          console.log(pred==object.classId?"T ok":"T ko",pred, object.className, index, object.file);
+          console.log(pred==object.classId?"T ok":"T ko",pred, object.className, (index+1).toString()+'/'+listTrain.length.toString(), object.file);
           
           resolve();
         });
@@ -131,7 +131,7 @@ var compute = function(){
             var pred = net.getPrediction();
             var acc = pred==object.classId ? 1.0 : 0.0;
             //testAccWindow.add(acc);
-            console.log(pred==object.classId?"V ok":"V ko",pred, object.className, index, object.file);
+            console.log(pred==object.classId?"V ok":"V ko",pred, object.className, (index+1).toString()+'/'+listValidate.length.toString(), object.file);
             resolve();
           });                              
         });

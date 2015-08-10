@@ -1,4 +1,5 @@
 # pixifier
+
 ## A picture classifier using CNN (convolutional neural networks)
 
 This repository's goal is to create a way to classify pictures in categories.
@@ -34,7 +35,42 @@ It's composed of three docker containers :
 
 ## How to configure :
 
-#### Create the file app/param-ini.json and configure it (example in param-ini.json.sample)
+The data for the training (pictures and labels) should be served by an api
+descibed by the file `param-ini.json` in `app`. This is a sample content:
+
+```
+{
+  "urlAPI": "http://_MY_WEBSITE/_MY_API_",
+  "urlPics": "http://_MY_WEBSITE/_MY_PICS_DIR",
+  "maxPics": 100,
+  "classes": [
+    {
+      "active": true,
+      "name": "velo",
+      "categories": [
+        "bicyclettes"
+      ],
+      "keywords": [
+        "velo",
+        "vtt",
+        "bicyclette"
+      ]
+    },
+    {
+      "active": true,
+      "name": "lit",
+      "categories": [
+        "mobilier",
+        "literie"
+      ],
+      "keywords": [
+        "lit"
+      ]
+    }
+  ]
+}
+```
+
 
 * urlAPI : URL of the training API sending you every pictures, and their associated categories
 

@@ -34,26 +34,39 @@ var MainView = React.createClass({
       return (<h4>Loading results...</h4>);
     var that = this;
     var labels = this.state.labels;
-    // Tabs
-    var tabJSX = labels.map(function(label, index){
-      return (<li role="presentation" className={(index===that.state.index)?"active":""}><a href="#" onClick={that.selectTab.bind(that,index)}><h3>{label}</h3></a></li>);
+    var scores = [];
+    var length = [];
+    labels.forEach(function(label){
+      scores.push(0);
+      length.push(0);
     });
+   
     //List
     var contentJSX = this.state.data.map(function(object){
+
+      // Average ratio of positive classfications
+      var idCat = labels.indexOf(object.className);
+      if(idCat > -1){
+        ++length[idCat];
+      }
+      var probs = [];
+      var max = 0;
+      for(var i=0; i<labels.length; ++i){
+        var prob = Math.floor(parseFloat(object.output.w[i.toString()])*100);
+        if(prob > max) max = prob;
+        probs.push(prob);
+      }
+      for(var i=0; i<labels.length; ++i){
+        if(probs[i] === max && object.className === labels[i]) ++scores[i];
+      }
+
       if(object.className === labels[that.state.index]){
         
-        var probs = [];
-        var max = 0;
-        for(var i=0; i<labels.length; ++i){
-          var prob = Math.floor(parseFloat(object.output.w[i.toString()])*100);
-          if(prob > max) max = prob;
-          probs.push(prob);
-        }
-
         var statsJSX = [];
         for(var i=0; i<labels.length; ++i){
-          if(probs[i] === max)
-            statsJSX.push(<li><strong>{labels[i]+": "+probs[i].toString()+"%"}</strong></li>);
+          if(probs[i] === max){
+            statsJSX.push(<li><strong>{labels[i]+": "+probs[i].toString()+"%"}</strong></li>);            
+          }
           else 
             statsJSX.push(<li>{labels[i]+": "+probs[i].toString()+"%"}</li>);
         }
@@ -63,7 +76,7 @@ var MainView = React.createClass({
             <div className="thumbnail center-block">
               <img width="160px" src={object.path.replace("/pixifier/app","")} />
               <div className="caption">
-                <ul>
+                <ul className="center">
                 {statsJSX}
                 </ul>
               </div>
@@ -71,6 +84,13 @@ var MainView = React.createClass({
           </div>);
       }
     });
+     // Tabs
+    var tabJSX = labels.map(function(label, index){
+      var stat = (length[index]===0)?0:scores[index]/length[index];
+      stat = Math.floor(stat * 100);
+      return (<li role="presentation" className={(index===that.state.index)?"active":""}><a href="#" onClick={that.selectTab.bind(that,index)}><h3>{label} <small>({stat}%)</small></h3></a></li>);
+    });
+   
     return(
       <div className="container">
         <br/>

@@ -5,6 +5,7 @@
   "main": "compute.js",
   "dependencies": {
     "body-parser": "^1.13.2",
+    "elasticsearch": "^5.0.0",
     "convnetjs": "^0.3.0",
     "es6-shim": "^0.31.2",
     "get-pixels": "^3.2.2",

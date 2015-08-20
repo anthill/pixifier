@@ -54,7 +54,7 @@ var saveRange = function(pics, index, range) {
             });
             wStream.on('error', function(err) {
                 console.log("ERROR:", pic.url, err);
-                subReject();
+                subResolve();
             });
             request({
                 url: pic.url,
@@ -361,42 +361,45 @@ var loadWithES = function(){
 
             return new Promise(function(resolve, reject){
 
-                var url = data.urlAPI+'/';
-                for(var i=0; i<line.categories.length; ++i){
-                    url += line.categories[i];
-                    if(i<line.categories.length-1)
-                        url+= "_OR_";
-                }
-                url += "/";
-                for(var i=0; i<line.keywords.length; ++i){
-                    url += line.keywords[i];
-                    if(i<line.keywords.length-1)
-                        url+= "_OR_";
-                }
-
-                console.log("[Call]", url);
+                console.log("[Call]", line.name);
             
                 console.time("[Call]");
 
+                console.log("- categories:", line.categories);
+                console.log("- keywords:", line.keywords);
                 client.search({
-                    index: "annonce",
-                    q: "title:"+line.name
-                }, function (error, response) {
+                    index: "advert",
+                    body: {
+                        query: {
+                            filtered: {
+                                filter:[
+                                    {term: {"category": line.categories}},
+                                    {term: {"title": line.keywords}}
+                                ]
+                            }
+                        },
+                        size: 100
+                    }
+                }, 
+                function (error, response) {
                     
                     if(error){
                         console.error('Call API error', err);
                         reject();
                         return;
                     }
+
+                    //console.log(response);
                     
                     var objects = response.hits.hits;
-                    console.log(objects.length, 'objects for', url);
+                    console.log(objects.length, 'objects for', line.name);
                     
                     var cpt = 0;
                     
                     objects
-                    .forEach(function(object){
+                    .forEach(function(object, index){
                         
+                        //console.log(index, object._source.title, '(', object._source.category, ')');
                         object._source.pics.split(';')
                         .filter(function(text){
                             return (text !== '');

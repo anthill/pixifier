@@ -48,31 +48,28 @@ var saveRange = function(pics, index, range) {
 
         return new Promise(function(subResolve, subReject){
 
-            request({
+            request.head({
                 url: pic.url,
                 strictSSL: false
             }, function (error, response, body) {
 
                 if(!error && response.statusCode<400) {
                     
-                    var wStream = fs.createWriteStream(pic.localPath);
-                    wStream.write(body);
-                    wStream.end();
-                    wStream.on("finish", function() {
-                        //console.log('->', pic.localPath, ': ok'); 
+                    request({
+                        url: pic.url,
+                        strictSSL: false
+                    })
+                    .pipe(fs.createWriteStream(pic.localPath))
+                    .on('close', function(){
                         subResolve();
-                    });
-                    wStream.on('error', function(err) {
-                        console.log('->', pic.localPath, ': ko,', error); 
-                        subResolve();
-                    });    
+                    })    
                 }
                 else if(error){
                     console.log('->', pic.url, ': ko,', error); 
                     subResolve();  
                 } 
                 else {
-                    console.log('->', pic.url, ': unfound,'); 
+                    console.log('->', pic.url, ': unfound'); 
                     subResolve();  
                 } 
             });
@@ -332,7 +329,7 @@ var loadWithRequests = function(){
     });
 }
 
-var loadWithES = function(){
+var loadWithElasticsearch = function(){
 
     // Read json parameters
     console.log("[Build] folders with",file);
@@ -394,7 +391,7 @@ var loadWithES = function(){
                                 ]
                             }
                         },
-                        size: 100
+                        size: data.maxPics
                     }
                 }, 
                 function (error, response) {
@@ -422,7 +419,6 @@ var loadWithES = function(){
                         })
                         .forEach(function(pic){
                             if(cpt++ < data.maxPics){
-                                console.log(data.urlPics +'/'+pic);
                                 list.push({
                                     url:        data.urlPics +'/'+pic,
                                     localPath:  '/pixifier/app/data/'+line.name+'/'+pic//stock object to download
@@ -470,4 +466,29 @@ var loadWithES = function(){
     });
 }
 
-loadWithES();
+var loadPics = function(){
+
+    fs.readFile(file, 'utf8', function (err, data) {
+        
+        if ( err != null ){ 
+            console.log('Error Ini parameters: ' + err);
+            return;
+        }
+
+        data = JSON.parse(data);
+        if(data.urlMode == "api"){
+            loadWithAPI();
+        }
+        else if(data.urlMode == "request"){
+            loadWithRequests();
+        }
+        else if(data.urlMode == "elasticsearch"){
+            loadWithElasticsearch();
+        }
+        else
+        {
+            console.log("URL mode not recognized");
+        }
+  });
+}
+loadPics();

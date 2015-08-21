@@ -137,10 +137,10 @@ var compute = function(){
         });
       }))
       .then(function(){
-        console.log("yo");
         fs.writeFile(path+"/Validated.json", JSON.stringify(listValidate), function(err){
           if(err) console.log(err);
         });
+        console.log("results exported to JSON file");
       });
     });
   });

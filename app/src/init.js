@@ -48,18 +48,31 @@ var saveRange = function(pics, index, range) {
 
         return new Promise(function(subResolve, subReject){
 
-            var wStream = fs.createWriteStream(pic.localPath);
-            wStream.on("finish", function() {
-                subResolve();
-            });
-            wStream.on('error', function(err) {
-                console.log("ERROR:", pic.url, err);
-                subReject();
-            });
-            request({
+            request.head({
                 url: pic.url,
                 strictSSL: false
-            }).pipe(wStream);
+            }, function (error, response, body) {
+
+                if(!error && response.statusCode<400) {
+                    
+                    request({
+                        url: pic.url,
+                        strictSSL: false
+                    })
+                    .pipe(fs.createWriteStream(pic.localPath))
+                    .on('close', function(){
+                        subResolve();
+                    })    
+                }
+                else if(error){
+                    console.log('->', pic.url, ': ko,', error); 
+                    subResolve();  
+                } 
+                else {
+                    console.log('->', pic.url, ': unfound'); 
+                    subResolve();  
+                } 
+            });
         });
         
     }))
@@ -316,7 +329,7 @@ var loadWithRequests = function(){
     });
 }
 
-var loadWithES = function(){
+var loadWithElasticsearch = function(){
 
     // Read json parameters
     console.log("[Build] folders with",file);
@@ -361,42 +374,45 @@ var loadWithES = function(){
 
             return new Promise(function(resolve, reject){
 
-                var url = data.urlAPI+'/';
-                for(var i=0; i<line.categories.length; ++i){
-                    url += line.categories[i];
-                    if(i<line.categories.length-1)
-                        url+= "_OR_";
-                }
-                url += "/";
-                for(var i=0; i<line.keywords.length; ++i){
-                    url += line.keywords[i];
-                    if(i<line.keywords.length-1)
-                        url+= "_OR_";
-                }
-
-                console.log("[Call]", url);
+                console.log("[Call]", line.name);
             
                 console.time("[Call]");
 
+                console.log("- categories:", line.categories);
+                console.log("- keywords:", line.keywords);
                 client.search({
-                    index: "annonce",
-                    q: "title:"+line.name
-                }, function (error, response) {
+                    index: "advert",
+                    body: {
+                        query: {
+                            filtered: {
+                                filter:[
+                                    {term: {"category": line.categories}},
+                                    {term: {"title": line.keywords}}
+                                ]
+                            }
+                        },
+                        size: data.maxPics
+                    }
+                }, 
+                function (error, response) {
                     
                     if(error){
                         console.error('Call API error', err);
                         reject();
                         return;
                     }
+
+                    //console.log(response);
                     
                     var objects = response.hits.hits;
-                    console.log(objects.length, 'objects for', url);
+                    console.log(objects.length, 'objects for', line.name);
                     
                     var cpt = 0;
                     
                     objects
-                    .forEach(function(object){
+                    .forEach(function(object, index){
                         
+                        //console.log(index, object._source.title, '(', object._source.category, ')');
                         object._source.pics.split(';')
                         .filter(function(text){
                             return (text !== '');
@@ -450,4 +466,29 @@ var loadWithES = function(){
     });
 }
 
-loadWithES();
+var loadPics = function(){
+
+    fs.readFile(file, 'utf8', function (err, data) {
+        
+        if ( err != null ){ 
+            console.log('Error Ini parameters: ' + err);
+            return;
+        }
+
+        data = JSON.parse(data);
+        if(data.urlMode == "api"){
+            loadWithAPI();
+        }
+        else if(data.urlMode == "request"){
+            loadWithRequests();
+        }
+        else if(data.urlMode == "elasticsearch"){
+            loadWithElasticsearch();
+        }
+        else
+        {
+            console.log("URL mode not recognized");
+        }
+  });
+}
+loadPics();

@@ -6,7 +6,10 @@ This repository's goal is to create a way to classify pictures in categories.
 
 It's composed of three docker containers :
 
-1. rebuild-pics.yml : Get pictures used for training in a distant database, download them and resize them.
+1. rebuild-pics.yml : Get pictures used for training in a distant database, download them and resize them. Threre are 3 modes to download pics :
+* api : download JSON data for all categories (1 request)
+* request : download JSON data for each category (1 request = 1 category)
+* elasticsearch : request an Elasticsearch API for each category 
 
 2. classify-pics.yml : Train a CNN with theses pictures.
 
@@ -40,6 +43,7 @@ descibed by the file `param-ini.json` in `app`. This is a sample content:
 
 ```
 {
+  "urlMode":"api" OR "request" OR "elasticsearch,
   "urlAPI": "http://_MY_WEBSITE/_MY_API_",
   "urlPics": "http://_MY_WEBSITE/_MY_PICS_DIR",
   "maxPics": 100,

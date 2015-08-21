@@ -27,6 +27,14 @@ var compute = function(){
     });
     classes_txt.sort();
 
+    // Search the minimum of pics in each folder
+    var size = 0;
+    classes_txt.forEach(function(className, index){
+
+      var files = fs.readdirSync(path+className);
+      if(size === 0 || size > files.length) size = files.length;
+    });
+    console.log("Size of dataset for each category:", size);
 
     var layer_defs, net, trainer;
     layer_defs = [];
@@ -37,7 +45,7 @@ var compute = function(){
     layer_defs.push({type:'pool', sx:2, stride:2});
     layer_defs.push({type:'conv', sx:5, filters:20, stride:1, pad:2, activation:'relu'});
     layer_defs.push({type:'pool', sx:2, stride:2});
-    layer_defs.push({type:'softmax', num_classes:classes_txt.length});
+    layer_defs.push({type:'softmax', num_classes:size});
     
     var net = new convnetjs.Net();
     net.makeLayers(layer_defs);
@@ -62,7 +70,7 @@ var compute = function(){
           id: id,
           output: []
         }
-        if(id < 0.9*files.length) listTrain.push(object);
+        if(id < 0.9*size) listTrain.push(object);
         else listValidate.push(object);
       });
     });
@@ -82,8 +90,8 @@ var compute = function(){
         var x = new convnetjs.Vol(nbPixels,nbPixels,nbChannels,0.0);
         getPixels(object.path, function(err, pixels) {
           if(err) {
-            console.log("Bad image path");
-            reject();
+            console.log("Error opening", object.path);
+            resolve();
             return
           }
           
@@ -115,8 +123,8 @@ var compute = function(){
           var x = new convnetjs.Vol(nbPixels,nbPixels,nbChannels,0.0);
           getPixels(object.path, function(err, pixels) {
             if(err) {
-              console.log("Bad image path");
-              reject();
+              console.log("Error opening", object.path);
+              resolve();
               return
             }
             
@@ -137,10 +145,10 @@ var compute = function(){
         });
       }))
       .then(function(){
-        console.log("yo");
         fs.writeFile(path+"/Validated.json", JSON.stringify(listValidate), function(err){
           if(err) console.log(err);
         });
+        console.log("results exported to JSON file");
       });
     });
   });

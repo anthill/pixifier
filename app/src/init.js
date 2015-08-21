@@ -48,18 +48,34 @@ var saveRange = function(pics, index, range) {
 
         return new Promise(function(subResolve, subReject){
 
-            var wStream = fs.createWriteStream(pic.localPath);
-            wStream.on("finish", function() {
-                subResolve();
-            });
-            wStream.on('error', function(err) {
-                console.log("ERROR:", pic.url, err);
-                subResolve();
-            });
             request({
                 url: pic.url,
                 strictSSL: false
-            }).pipe(wStream);
+            }, function (error, response, body) {
+
+                if(!error && response.statusCode<400) {
+                    
+                    var wStream = fs.createWriteStream(pic.localPath);
+                    wStream.write(body);
+                    wStream.end();
+                    wStream.on("finish", function() {
+                        //console.log('->', pic.localPath, ': ok'); 
+                        subResolve();
+                    });
+                    wStream.on('error', function(err) {
+                        console.log('->', pic.localPath, ': ko,', error); 
+                        subResolve();
+                    });    
+                }
+                else if(error){
+                    console.log('->', pic.url, ': ko,', error); 
+                    subResolve();  
+                } 
+                else {
+                    console.log('->', pic.url, ': unfound,'); 
+                    subResolve();  
+                } 
+            });
         });
         
     }))
@@ -406,6 +422,7 @@ var loadWithES = function(){
                         })
                         .forEach(function(pic){
                             if(cpt++ < data.maxPics){
+                                console.log(data.urlPics +'/'+pic);
                                 list.push({
                                     url:        data.urlPics +'/'+pic,
                                     localPath:  '/pixifier/app/data/'+line.name+'/'+pic//stock object to download

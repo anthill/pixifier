@@ -45,7 +45,7 @@ var compute = function(){
     layer_defs.push({type:'pool', sx:2, stride:2});
     layer_defs.push({type:'conv', sx:5, filters:20, stride:1, pad:2, activation:'relu'});
     layer_defs.push({type:'pool', sx:2, stride:2});
-    layer_defs.push({type:'softmax', num_classes:size});
+    layer_defs.push({type:'softmax', num_classes:data.classes.length});
     
     var net = new convnetjs.Net();
     net.makeLayers(layer_defs);
@@ -145,7 +145,19 @@ var compute = function(){
         });
       }))
       .then(function(){
-        fs.writeFile(path+"/Validated.json", JSON.stringify(listValidate), function(err){
+        var listResults = [];
+        listValidate.forEach(function(result, index){
+          var resume = {
+            className: result.className,
+            path: result.path,
+            output: []
+          }
+          for(var i = 0; i<classes_txt.length; ++i){
+            resume.output.push(Math.floor(parseFloat(result.output.w[i.toString()])*100)); 
+          }
+          listResults.push(resume);
+        });
+        fs.writeFile(path+"/Validated.json", JSON.stringify(listResults), function(err){
           if(err) console.log(err);
         });
         console.log("results exported to JSON file");

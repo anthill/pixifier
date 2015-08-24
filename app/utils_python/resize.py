@@ -15,8 +15,12 @@ def main():
 			print '> Resize', line['name']
 			for dirPath, dirName, fileNames in os.walk(data_folder+'/'+line['name']):
 				for fileName in fileNames:
-					img = Image.open(os.path.join(dirPath,fileName));
-					outImg = img.resize((64, 64));
-					outImg.save(os.path.join(dirPath, fileName))
-
+					try:
+						img = Image.open(os.path.join(dirPath,fileName));
+						outImg = img.resize((64, 64));
+						outImg.save(os.path.join(dirPath, fileName))
+					except Exception as inst:
+						print "X Erreur ", fileName
+						print inst
+						continue
 main()

@@ -2,7 +2,7 @@
 
 var MainView = React.createClass({
   getInitialState: function() {
-    return {data: null, labels: [], index: 0};
+    return {data: null, labels: [], index: 0, sort: 1};
   },
   componentDidMount: function() {
 
@@ -32,6 +32,7 @@ var MainView = React.createClass({
   render: function() {
     if(this.state.data === null) 
       return (<h4>Loading results...</h4>);
+
     var that = this;
     var labels = this.state.labels;
     var scores = [];
@@ -42,6 +43,7 @@ var MainView = React.createClass({
     });
    
     //List
+    var nbObjects = 0;
     var contentJSX = this.state.data.map(function(object){
 
       // Average ratio of positive classfications
@@ -52,7 +54,7 @@ var MainView = React.createClass({
       var probs = [];
       var max = 0;
       for(var i=0; i<labels.length; ++i){
-        var prob = Math.floor(parseFloat(object.output.w[i.toString()])*100);
+        var prob = parseFloat(object.output[i]);
         if(prob > max) max = prob;
         probs.push(prob);
       }
@@ -62,6 +64,7 @@ var MainView = React.createClass({
 
       if(object.className === labels[that.state.index]){
         
+        ++nbObjects;
         var statsJSX = [];
         for(var i=0; i<labels.length; ++i){
           if(probs[i] === max){
@@ -97,6 +100,7 @@ var MainView = React.createClass({
         <ul className="nav nav-tabs">
          {tabJSX}
         </ul>
+        <h4>{nbObjects} objets</h4>
         <div className="row">
           {contentJSX}
         </div>

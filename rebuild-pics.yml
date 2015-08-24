@@ -2,5 +2,5 @@ pixifier:
    build: .
    command: node /pixifier/app/src/init.js
    volumes:
-      - app:/pixifier/app
+      - ./app:/pixifier/app
       - /pixifier/data:/pixifier/data

@@ -6,6 +6,6 @@ pixifier:
    environment:
       - VIRTUAL_PORT=33000
    volumes:
-   - app:/pixifier/app
+   - ./app:/pixifier/app
    - /pixifier/data:/pixifier/data
    restart: always
